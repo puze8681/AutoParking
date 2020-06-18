@@ -44,7 +44,7 @@
             android:layout_margin="0dp"
             android:layout_marginLeft="16dp"
             android:layout_marginRight="16dp"
-            android:text="텍스트 인식" />
+            android:text="번호판 인식" />
     </FrameLayout>
 
     <FrameLayout
@@ -70,7 +70,29 @@
                     android:textSize="18sp" />
             </LinearLayout>
         </ScrollView>
-
+        <LinearLayout
+            android:layout_gravity="bottom"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <Button
+                android:id="@+id/btnDone"
+                android:text="입차하기"
+                android:layout_margin="0dp"
+                android:layout_marginLeft="16dp"
+                android:layout_marginRight="16dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+            <Button
+                android:id="@+id/btnAdmin"
+                android:text="번호판 입력하여 입차하기"
+                android:layout_gravity="bottom"
+                android:layout_margin="0dp"
+                android:layout_marginLeft="16dp"
+                android:layout_marginRight="16dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
     </FrameLayout>
 
 </LinearLayout>

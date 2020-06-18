@@ -1,6 +1,7 @@
 package kr.puze.autoparking;
 
 import android.Manifest;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
@@ -31,7 +32,9 @@ import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.view.Window;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -67,18 +70,23 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
     TessBaseAPI tessBaseAPI;
 
     private Button btnTakePicture;
+    private Button btnDone;
+    private Button btnAdmin;
     private ImageView imageView;
     private ImageView imageResult;
     private TextView textView;
     private TextureView textureView;
+    private int isRecognized = 0;
 
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
         ORIENTATIONS.append(Surface.ROTATION_90, 0);
         ORIENTATIONS.append(Surface.ROTATION_180, 270);
         ORIENTATIONS.append(Surface.ROTATION_270, 180);
     }
+
     private String cameraId;
     protected CameraDevice cameraDevice;
     protected CameraCaptureSession cameraCaptureSessions;
@@ -106,23 +114,47 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
         assert textureView != null;
         setSurfaceTextureListener();
         btnTakePicture = findViewById(R.id.btnTakePicture);
+        btnDone = findViewById(R.id.btnDone);
+        btnAdmin = findViewById(R.id.btnAdmin);
         assert btnTakePicture != null;
+        assert btnDone != null;
+        assert btnAdmin != null;
         btnTakePicture.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
             @Override
             public void onClick(View v) {
-                takePicture2();
+                takePicture();
+            }
+        });
+        btnDone.setClickable(false);
+        final int type = getIntent().getIntExtra("type", 0);
+        if(type == 0) {
+            btnDone.setText("인식한 번호판 차량 입차하기");
+            btnAdmin.setText("번호판 입력하여 차량 입차하기");
+        }else{
+            btnDone.setText("인식한 번호판 차량 출차하기");
+            btnAdmin.setText("번호판 입력하여 차량 출차하기");
+        }
+        btnDone.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(isRecognized == 2) dialogDone(type, textView.getText().toString());
             }
         });
 
+        btnAdmin.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                dialogDone(type, "");
+            }
+        });
         tessBaseAPI = new TessBaseAPI();
         String dir = getFilesDir() + "/tesseract";
-        if(checkLanguageFile(dir+"/tessdata"))
+        if (checkLanguageFile(dir + "/tessdata"))
             tessBaseAPI.init(dir, "kor");
     }
 
-    public void setSurfaceTextureListener()
-    {
+    public void setSurfaceTextureListener() {
         textureView.setSurfaceTextureListener(this);
     }
 
@@ -135,10 +167,12 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
             cameraDevice = camera;
             createCameraPreview();
         }
+
         @Override
         public void onDisconnected(CameraDevice camera) {
             cameraDevice.close();
         }
+
         @Override
         public void onError(CameraDevice camera, int error) {
             cameraDevice.close();
@@ -151,6 +185,7 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
         mBackgroundThread.start();
         mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
     }
+
     protected void stopBackgroundThread() {
         mBackgroundThread.quitSafely();
         try {
@@ -163,7 +198,7 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    protected void takePicture2() {
+    protected void takePicture() {
         if (null == cameraDevice) {
             Log.e(TAG, "cameraDevice is null");
             return;
@@ -290,7 +325,7 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
                                             imageResult.setImageBitmap(roi);
                                             new AsyncTess().execute(roi);
                                             btnTakePicture.setEnabled(false);
-                                            btnTakePicture.setText("텍스트 인식중...");
+                                            btnTakePicture.setText("번호판 인식중...");
                                         }
                                     });
                                 }
@@ -320,6 +355,7 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
                         e.printStackTrace();
                     }
                 }
+
                 @Override
                 public void onConfigureFailed(CameraCaptureSession session) {
                 }
@@ -329,14 +365,14 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
         }
     }
 
-    protected  int getContourCount(Mat matContour, Mat matSubContour, Rect rcComp) {
+    protected int getContourCount(Mat matContour, Mat matSubContour, Rect rcComp) {
         List<MatOfPoint> contours = new ArrayList<>();
         Mat hierarchy = new Mat();
         Imgproc.findContours(matSubContour, contours, hierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
         int nCount = 0;
         float fHeight, fWidth;
         float fCompHeight = rcComp.height;
-        for(int idx = 0; idx < contours.size(); idx++) {
+        for (int idx = 0; idx < contours.size(); idx++) {
             MatOfPoint matOfPoint = contours.get(idx);
             Rect rect = Imgproc.boundingRect(matOfPoint);
             //내부에서 찾으므로 아래조건 불필요
@@ -354,150 +390,6 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    protected void takePicture() {
-        if(null == cameraDevice) {
-            Log.e(TAG, "cameraDevice is null");
-            return;
-        }
-        CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-        try {
-            CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraDevice.getId());
-            Size[] jpegSizes = null;
-            if (characteristics != null) {
-                StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-                jpegSizes = map.getOutputSizes(ImageFormat.JPEG);
-            }
-            int width = 640;
-            int height = 480;
-            if (jpegSizes != null && 0 < jpegSizes.length) {
-                width = jpegSizes[0].getWidth();
-                height = jpegSizes[0].getHeight();
-            }
-            ImageReader imageReader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1);
-            List<Surface> outputSurfaces = new ArrayList<Surface>(2);
-            outputSurfaces.add(imageReader.getSurface());
-            outputSurfaces.add(new Surface(textureView.getSurfaceTexture()));
-            final CaptureRequest.Builder captureBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-            captureBuilder.addTarget(imageReader.getSurface());
-            captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
-            // Orientation
-            int rotation = getWindowManager().getDefaultDisplay().getRotation();
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation));
-            //final File file = new File(Environment.getExternalStorageDirectory()+"/pic.jpg");
-            ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
-                @Override
-                public void onImageAvailable(ImageReader reader) {
-                    Image image = null;
-                    try {
-                        image = reader.acquireLatestImage();
-                        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-                        byte[] bytes = new byte[buffer.capacity()];
-                        buffer.get(bytes);
-                        Log.d(TAG, "takePicture");
-
-                        BitmapFactory.Options options = new BitmapFactory.Options();
-                        options.inSampleSize = 8;
-
-                        Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                        bitmap = GetRotatedBitmap(bitmap, 90);
-
-                        Bitmap imgRoi;
-                        OpenCVLoader.initDebug(); // 초기화
-
-                        Mat matBase=new Mat();
-                        Utils.bitmapToMat(bitmap ,matBase);
-                        Mat matGray = new Mat();
-                        Mat matCny = new Mat();
-
-                        Imgproc.cvtColor(matBase, matGray, Imgproc.COLOR_BGR2GRAY); // GrayScale
-                        Imgproc.Canny(matGray, matCny, 10, 100, 3, true); // Canny Edge 검출
-                        Imgproc.threshold(matGray, matCny, 150, 255, Imgproc.THRESH_BINARY); //Binary
-
-                        List<MatOfPoint> contours = new ArrayList<>();
-                        Mat hierarchy = new Mat();
-                        //노이즈제거
-                        Imgproc.erode(matCny, matCny, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(6, 6)));
-                        Imgproc.dilate(matCny, matCny, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(12, 12)));
-                        //관심영역 추출
-                        Imgproc.findContours(matCny, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);//RETR_EXTERNAL //RETR_TREE
-                        Imgproc.drawContours(matBase, contours, -1, new Scalar(255, 0, 0), 5);
-
-                        imgBase= Bitmap.createBitmap(matBase.cols(), matBase.rows(), Bitmap.Config.ARGB_8888); // 비트맵 생성
-                        Utils.matToBitmap(matBase, imgBase); // Mat을 비트맵으로 변환
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                runOnUiThread(new Runnable(){
-                                    @Override
-                                    public void run() {
-                                        imageView.setImageBitmap(imgBase);
-                                    }
-                                });
-                            }
-                        }).start();
-                        imgRoi= Bitmap.createBitmap(matCny.cols(), matCny.rows(), Bitmap.Config.ARGB_8888); // 비트맵 생성
-                        Utils.matToBitmap(matCny, imgRoi);
-
-                        for(int idx = 0; idx >= 0; idx = (int) hierarchy.get(0, idx)[0]) {
-                            MatOfPoint matOfPoint = contours.get(idx);
-                            Rect rect = Imgproc.boundingRect(matOfPoint);
-
-                            if (rect.width < 30 || rect.height < 30 || rect.width <= rect.height || rect.width <= rect.height * 3 || rect.width >= rect.height * 6)
-                                continue; // 사각형 크기에 따라 출력 여부 결정
-
-                            roi = Bitmap.createBitmap( imgRoi, (int)rect.tl().x, (int)rect.tl().y, rect.width, rect.height);
-                            new Thread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    runOnUiThread(new Runnable(){
-                                        @Override
-                                        public void run() {
-                                            imageResult.setImageBitmap(roi);
-                                            new AsyncTess().execute(roi);
-                                            btnTakePicture.setEnabled(false);
-                                            btnTakePicture.setText("텍스트 인식중...");
-                                        }
-                                    });
-                                }
-                            }).start();
-                            break;
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    } finally {
-                        if (image != null) {
-                            image.close();
-                        }
-                    }
-                }
-
-            };
-            imageReader.setOnImageAvailableListener(readerListener, mBackgroundHandler);
-            final CameraCaptureSession.CaptureCallback captureListener = new CameraCaptureSession.CaptureCallback() {
-                @Override
-                public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
-                    super.onCaptureCompleted(session, request, result);
-                    createCameraPreview();
-                }
-            };
-            cameraDevice.createCaptureSession(outputSurfaces, new CameraCaptureSession.StateCallback() {
-                @Override
-                public void onConfigured(CameraCaptureSession session) {
-                    try {
-                        session.capture(captureBuilder.build(), captureListener, mBackgroundHandler);
-                    } catch (CameraAccessException e) {
-                        e.printStackTrace();
-                    }
-                }
-                @Override
-                public void onConfigureFailed(CameraCaptureSession session) {
-                }
-            }, mBackgroundHandler);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     protected void createCameraPreview() {
         try {
             SurfaceTexture texture = textureView.getSurfaceTexture();
@@ -506,7 +398,7 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
             Surface surface = new Surface(texture);
             captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             captureRequestBuilder.addTarget(surface);
-            cameraDevice.createCaptureSession(Arrays.asList(surface), new CameraCaptureSession.StateCallback(){
+            cameraDevice.createCaptureSession(Arrays.asList(surface), new CameraCaptureSession.StateCallback() {
                 @Override
                 public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
                     //The camera is already closed
@@ -517,6 +409,7 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
                     cameraCaptureSessions = cameraCaptureSession;
                     updatePreview();
                 }
+
                 @Override
                 public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
                     Toast.makeText(OpenActivity.this, "Configuration change", Toast.LENGTH_SHORT).show();
@@ -526,6 +419,7 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
             e.printStackTrace();
         }
     }
+
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private void openCamera() {
         CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
@@ -547,9 +441,10 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
         }
         Log.e(TAG, "openCamera X");
     }
+
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     protected void updatePreview() {
-        if(null == cameraDevice) {
+        if (null == cameraDevice) {
             Log.e(TAG, "updatePreview error, return");
         }
         captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
@@ -559,6 +454,7 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
             e.printStackTrace();
         }
     }
+
     private void closeCamera() {
         //if (null != cameraDevice) {
         //    cameraDevice.close();
@@ -593,6 +489,7 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
             setSurfaceTextureListener();
         }
     }
+
     @Override
     protected void onPause() {
         Log.e(TAG, "onPause");
@@ -601,22 +498,20 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
         super.onPause();
     }
 
-    boolean checkLanguageFile(String dir)
-    {
+    boolean checkLanguageFile(String dir) {
         File file = new File(dir);
-        if(!file.exists() && file.mkdirs())
+        if (!file.exists() && file.mkdirs())
             createFiles(dir);
-        else if(file.exists()){
+        else if (file.exists()) {
             String filePath = dir + "/kor.traineddata";
             File langDataFile = new File(filePath);
-            if(!langDataFile.exists())
+            if (!langDataFile.exists())
                 createFiles(dir);
         }
         return true;
     }
 
-    private void createFiles(String dir)
-    {
+    private void createFiles(String dir) {
         AssetManager assetMgr = this.getAssets();
 
         InputStream inputStream = null;
@@ -637,7 +532,7 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
             inputStream.close();
             outputStream.flush();
             outputStream.close();
-        }catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -691,17 +586,50 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
             String match = "[^\uAC00-\uD7A3xfe0-9a-zA-Z\\s]";
             result = result.replaceAll(match, " ");
             result = result.replaceAll(" ", "");
-            if(result.length() >= 7 && result.length() <= 8) {
+            if (result.length() >= 7 && result.length() <= 8) {
                 textView.setText(result);
                 Toast.makeText(OpenActivity.this, "" + result, Toast.LENGTH_SHORT).show();
-            }
-            else {
+                isRecognized = 2;
+                btnDone.setClickable(true);
+            } else {
                 textView.setText("");
                 Toast.makeText(OpenActivity.this, "번호판 문자인식에 실패했습니다", Toast.LENGTH_LONG).show();
+                isRecognized = 0;
+                btnDone.setClickable(false);
             }
 
             btnTakePicture.setEnabled(true);
-            btnTakePicture.setText("텍스트 인식");
+            btnTakePicture.setText("번호판 인식");
         }
+    }
+
+    private void dialogDone(int type, String text) {
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.dialog_done);
+        TextView textType = findViewById(R.id.text_type);
+        final EditText editText = findViewById(R.id.edit_dialog_text);
+        TextView buttonCancel = findViewById(R.id.button_dialog_cancel);
+        TextView buttonCheck = findViewById(R.id.button_dialog_check);
+        if (type == 1) textType.setText("입차하시겠습니까?");
+        else textType.setText("출차하시겠습니까?");
+        editText.setText(text);
+        buttonCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
+
+        buttonCheck.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                editText.getText().toString();
+                dialog.dismiss();
+                finish();
+            }
+        });
+
+        dialog.show();
     }
 }
