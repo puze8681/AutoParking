@@ -10,6 +10,7 @@ import android.graphics.Matrix
 import android.hardware.Camera
 import android.os.AsyncTask
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -23,22 +24,22 @@ import java.io.IOException
 class CameraActivity : AppCompatActivity() {
 
     private var tessBaseAPI: TessBaseAPI = TessBaseAPI()
-    private var surfaceView: CameraSurfaceView? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_camera)
-        surfaceView = findViewById(R.id.surfaceView)
         button.setOnClickListener {
             capture()
         }
         val dir = "$filesDir/tesseract"
-        if (checkLanguageFile("$dir/tessdata")) tessBaseAPI.init(dir, "kor")
+        if (checkLanguageFile("$dir/tessdata"))
+            tessBaseAPI.init(dir, "kor")
     }
 
     private fun checkLanguageFile(dir: String): Boolean {
         val file = File(dir)
         if (!file.exists() && file.mkdirs()) createFiles(dir) else if (file.exists()) {
-            val filePath = "$dir/eng.traineddata"
+            val filePath = "$dir/kor.traineddata"
             val langDataFile = File(filePath)
             if (!langDataFile.exists()) createFiles(dir)
         }
@@ -48,8 +49,8 @@ class CameraActivity : AppCompatActivity() {
     private fun createFiles(dir: String) {
         val assetMgr: AssetManager = this.assets
         try {
-            val inputStream = assetMgr.open("eng.traineddata")
-            val destFile = "$dir/eng.traineddata"
+            val inputStream = assetMgr.open("kor.traineddata")
+            val destFile = "$dir/kor.traineddata"
             val outputStream = FileOutputStream(destFile)
             val buffer = ByteArray(1024)
             var read: Int
@@ -65,7 +66,9 @@ class CameraActivity : AppCompatActivity() {
     }
 
     private fun capture() {
+        Log.d("LOGTAG", "capture")
         surfaceView!!.capture(Camera.PictureCallback { bytes, camera ->
+            Log.d("LOGTAG", "PictureCallback")
             val options: BitmapFactory.Options = BitmapFactory.Options()
             options.inSampleSize = 8
             var bitmap: Bitmap? = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
@@ -74,6 +77,7 @@ class CameraActivity : AppCompatActivity() {
             button.isEnabled = false
             button.text = "텍스트 인식중..."
             AsyncTess(tessBaseAPI, this@CameraActivity, textView, button).execute(bitmap)
+            Log.d("LOGTAG", "startPreview")
             camera.startPreview()
         })
     }
