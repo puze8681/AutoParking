@@ -32,7 +32,7 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context) : 
                 dialog.dismiss()
             }
             dialog.button_dialog_check.setOnClickListener {
-                MainActivity().editItem(position,  dialog.edit_dialog_text.toString())
+                MainActivity().editItem(position,  dialog.edit_dialog_text.text.toString())
                 dialog.dismiss()
             }
             dialog.show()
@@ -44,10 +44,10 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context) : 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val context = itemView.context!!
         fun bind(item: CarData, position: Int) {
-            itemView.text_num.text = (position+1).toString()
+            itemView.text_num.text = "${position+1}"
             itemView.text_title.text = item.carName.toString()
-            itemView.text_time.text = getTime(item.time)
-            itemView.text_pay.text = "${calculatePay(item.time)}원"
+            itemView.text_time.text = getTime(item.timeStamp)
+            itemView.text_pay.text = "${calculatePay(item.timeStamp)}원"
         }
 
         fun getTime(timeStamp: Long): String{

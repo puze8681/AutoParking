@@ -69,6 +69,7 @@ class MainActivity : AppCompatActivity() {
 
     fun addItem(text: String){
         Log.d("LOGTAG", "addItem")
+        Log.d("LOGTAG", getTime(Calendar.getInstance().timeInMillis))
         item.add(CarData(text, Calendar.getInstance().timeInMillis))
         myRef.setValue(item)
     }
@@ -98,7 +99,7 @@ class MainActivity : AppCompatActivity() {
         Log.d("LOGTAG", "getTodayPrice")
         var price = 0
         loop@ for(i in 0 until item.size){
-            if(getTime(item[i].time) == getTime(Calendar.getInstance().timeInMillis)) price += calculatePay(item[i].time)
+            if(getTime(item[i].timeStamp) == getTime(Calendar.getInstance().timeInMillis)) price += calculatePay(item[i].timeStamp)
             else break@loop
         }
         return price
@@ -143,7 +144,6 @@ class MainActivity : AppCompatActivity() {
     @IgnoreExtraProperties
     data class Data(
         var carName: String = "",
-        var timeStamp: Long = 0,
-        var price: Int = 0
+        var timeStamp: Long = 0
     )
 }

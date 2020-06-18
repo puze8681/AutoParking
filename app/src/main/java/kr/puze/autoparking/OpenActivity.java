@@ -611,7 +611,7 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
         final EditText editText = dialog.findViewById(R.id.edit_dialog_text);
         TextView buttonCancel = dialog.findViewById(R.id.button_dialog_cancel);
         TextView buttonCheck = dialog.findViewById(R.id.button_dialog_check);
-        if (type == 1) textType.setText("입차하시겠습니까?");
+        if (type == 0) textType.setText("입차하시겠습니까?");
         else textType.setText("출차하시겠습니까?");
         editText.setText(text);
         buttonCancel.setOnClickListener(new View.OnClickListener() {

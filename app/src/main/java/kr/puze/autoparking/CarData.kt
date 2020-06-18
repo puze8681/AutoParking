@@ -3,7 +3,7 @@ package kr.puze.autoparking
 import android.os.Parcel
 import android.os.Parcelable
 
-class CarData(var carName: String?, var time: Long) : Parcelable {
+class CarData(var carName: String?, var timeStamp: Long) : Parcelable {
     constructor(source: Parcel) : this(
         source.readString(),
         source.readLong()
@@ -13,7 +13,7 @@ class CarData(var carName: String?, var time: Long) : Parcelable {
 
     override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
         writeString(carName)
-        writeSerializable(time)
+        writeSerializable(timeStamp)
     }
 
     companion object {
