@@ -45,8 +45,10 @@ import com.googlecode.tesseract.android.TessBaseAPI;
 
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
@@ -109,7 +111,7 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
             @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
             @Override
             public void onClick(View v) {
-                takePicture();
+                takePicture2();
             }
         });
 
@@ -159,6 +161,198 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
             e.printStackTrace();
         }
     }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    protected void takePicture2() {
+        if (null == cameraDevice) {
+            Log.e(TAG, "cameraDevice is null");
+            return;
+        }
+        CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+        try {
+            Log.d(TAG, "cameraDevice is not-null");
+            CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraDevice.getId());
+            Size[] jpegSizes = null;
+            StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            jpegSizes = map.getOutputSizes(ImageFormat.JPEG);
+            int width = 640;
+            int height = 480;
+            if (jpegSizes != null && 0 < jpegSizes.length) {
+                width = jpegSizes[0].getWidth();
+                height = jpegSizes[0].getHeight();
+            }
+            ImageReader imageReader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1);
+            List<Surface> outputSurfaces = new ArrayList<>(2);
+            outputSurfaces.add(imageReader.getSurface());
+            outputSurfaces.add(new Surface(textureView.getSurfaceTexture()));
+            final CaptureRequest.Builder captureBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            captureBuilder.addTarget(imageReader.getSurface());
+            captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+            // Orientation
+            int rotation = getWindowManager().getDefaultDisplay().getRotation();
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation));
+            //final File file = new File(Environment.getExternalStorageDirectory()+"/pic.jpg");
+            ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
+                @Override
+                public void onImageAvailable(ImageReader reader) {
+                    try (Image image = reader.acquireLatestImage()) {
+                        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                        byte[] bytes = new byte[buffer.capacity()];
+                        buffer.get(bytes);
+                        Log.d(TAG, "takePicture");
+
+                        BitmapFactory.Options options = new BitmapFactory.Options();
+                        options.inSampleSize = 8;
+
+                        Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
+                        bitmap = GetRotatedBitmap(bitmap, 90);
+
+                        Bitmap imgRoi;
+                        OpenCVLoader.initDebug(); // 초기화
+
+                        Mat matBase = new Mat();
+                        Utils.bitmapToMat(bitmap, matBase);
+                        Mat matGray = new Mat();
+                        Mat matTopHat = new Mat();
+                        Mat matBlackHat = new Mat();
+                        Mat matThresh = new Mat();
+                        Mat matDilate = new Mat();
+
+                        Imgproc.cvtColor(matBase, matGray, Imgproc.COLOR_BGR2GRAY); // GrayScale
+                        Mat matKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(3, 3), new Point(0, 0));
+                        Imgproc.morphologyEx(matGray, matTopHat, Imgproc.MORPH_TOPHAT, matKernel, new Point(0, 0)); //원본에서 열기연산 제외
+                        Imgproc.morphologyEx(matGray, matBlackHat, Imgproc.MORPH_BLACKHAT, matKernel, new Point(0, 0)); //닫기연산에서 원본 제외
+
+                        Mat matAdd = new Mat();
+                        Core.add(matGray, matTopHat, matAdd);
+                        Mat matSub = new Mat();
+                        Core.subtract(matAdd, matBlackHat, matSub);
+                        Mat matBlur = new Mat();
+                        Imgproc.GaussianBlur(matSub, matBlur, new org.opencv.core.Size(5, 5), 0); //노이즈 제거
+                        Imgproc.adaptiveThreshold(matBlur, matThresh, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY_INV, 19, 9); //영상이진화
+                        Imgproc.dilate(matThresh, matDilate, matKernel); //엣지 테두리 더 굵게 처리
+
+                        List<MatOfPoint> contours = new ArrayList<>();
+                        Mat hierarchy = new Mat();
+                        Mat matContour = new Mat();
+                        Imgproc.cvtColor(matDilate, matContour, Imgproc.COLOR_GRAY2BGR);
+                        //관심영역 추출
+                        Imgproc.findContours(matDilate, contours, hierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
+                        Imgproc.drawContours(matContour, contours, -1, new Scalar(255, 0, 0), 5);
+
+                        imgBase = Bitmap.createBitmap(matBase.cols(), matBase.rows(), Bitmap.Config.ARGB_8888); // 비트맵 생성
+                        Utils.matToBitmap(matContour, imgBase); // Mat을 비트맵으로 변환
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        imageResult.setImageResource(0);
+                                        textView.setText("");
+                                        imageView.setImageBitmap(imgBase);
+                                    }
+                                });
+                            }
+                        }).start();
+
+                        Imgproc.adaptiveThreshold(matGray, matGray, 255, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY, 15, 20); //글자 선명화 처리
+                        imgRoi = Bitmap.createBitmap(matGray.cols(), matGray.rows(), Bitmap.Config.ARGB_8888); // 비트맵 생성
+                        Utils.matToBitmap(matGray, imgRoi);
+                        int nContourCount;
+                        float ratio;
+                        for (int idx = 0; idx >= 0; idx = (int) hierarchy.get(0, idx)[0]) {
+                            MatOfPoint matOfPoint = contours.get(idx);
+
+                            if (Imgproc.contourArea(matOfPoint) < 1000.0)
+                                continue;
+
+                            Rect rect = Imgproc.boundingRect(matOfPoint);
+
+                            ratio = (float) rect.width / (float) rect.height;
+                            if (rect.width < 30 || rect.height < 30 || rect.width <= rect.height || ratio < 1.7 || ratio > 5.0)
+                                continue; // 사각형 크기와 비율에 따라 출력 여부 결정
+                            Mat matRoi = matThresh.submat(rect);
+                            //모든 번호판 유형 표시
+                            Imgproc.rectangle(matContour, rect.tl(), rect.br(), new Scalar(0, 255, 0), 2);
+                            nContourCount = getContourCount(matContour, matRoi, rect);
+                            if (nContourCount < 6 || nContourCount > 9) //인식된 글자갯수 체크
+                                continue;
+                            //최종선택 번호판 유형 표시
+                            Imgproc.rectangle(matContour, rect.tl(), rect.br(), new Scalar(255, 0, 0), 2);
+                            roi = Bitmap.createBitmap(imgRoi, (int) rect.tl().x, (int) rect.tl().y, rect.width, rect.height);
+                            new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            imageResult.setImageBitmap(roi);
+                                            new AsyncTess().execute(roi);
+                                            btnTakePicture.setEnabled(false);
+                                            btnTakePicture.setText("텍스트 인식중...");
+                                        }
+                                    });
+                                }
+                            }).start();
+                            break;
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+            };
+            imageReader.setOnImageAvailableListener(readerListener, mBackgroundHandler);
+            final CameraCaptureSession.CaptureCallback captureListener = new CameraCaptureSession.CaptureCallback() {
+                @Override
+                public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
+                    super.onCaptureCompleted(session, request, result);
+                    createCameraPreview();
+                }
+            };
+            cameraDevice.createCaptureSession(outputSurfaces, new CameraCaptureSession.StateCallback() {
+                @Override
+                public void onConfigured(CameraCaptureSession session) {
+                    try {
+                        session.capture(captureBuilder.build(), captureListener, mBackgroundHandler);
+                    } catch (CameraAccessException e) {
+                        e.printStackTrace();
+                    }
+                }
+                @Override
+                public void onConfigureFailed(CameraCaptureSession session) {
+                }
+            }, mBackgroundHandler);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    protected  int getContourCount(Mat matContour, Mat matSubContour, Rect rcComp) {
+        List<MatOfPoint> contours = new ArrayList<>();
+        Mat hierarchy = new Mat();
+        Imgproc.findContours(matSubContour, contours, hierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
+        int nCount = 0;
+        float fHeight, fWidth;
+        float fCompHeight = rcComp.height;
+        for(int idx = 0; idx < contours.size(); idx++) {
+            MatOfPoint matOfPoint = contours.get(idx);
+            Rect rect = Imgproc.boundingRect(matOfPoint);
+            //내부에서 찾으므로 아래조건 불필요
+            //if(rcComp.x > rect.x || rcComp.y > rect.y || rcComp.x + rcComp.width < rect.x + rect.width || rcComp.y + rcComp.height < rect.y + rect.height)
+            //    continue; // 번호판 내부에 있는지 체크
+            fHeight = rect.height;
+            fWidth = rect.width;
+            if (rect.width > rect.height || fHeight / fWidth < 1.2 || fHeight / fWidth > 3.0 || fCompHeight / fHeight > 2.1 || fCompHeight / fHeight < 1.2)
+                continue; // 글자유형 체크
+            nCount++;
+            //번호판 내부 글자유형에 표시
+            Imgproc.rectangle(matContour, new Point(rcComp.x + rect.x, rcComp.y + rect.y), new Point(rcComp.x + rect.x + rect.width, rcComp.y + rect.y + rect.height), new Scalar(0, 0, 255), 2);
+        }
+        return nCount;
+    }
+
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     protected void takePicture() {
         if(null == cameraDevice) {
@@ -497,15 +691,14 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
             String match = "[^\uAC00-\uD7A3xfe0-9a-zA-Z\\s]";
             result = result.replaceAll(match, " ");
             result = result.replaceAll(" ", "");
-            Toast.makeText(OpenActivity.this, "result =" + result, Toast.LENGTH_SHORT).show();
-//            if(result.length() >= 7 && result.length() <= 8) {
-//                textView.setText(result);
-//                Toast.makeText(OpenActivity.this, "" + result, Toast.LENGTH_SHORT).show();
-//            }
-//            else {
-//                textView.setText("");
-//                Toast.makeText(OpenActivity.this, "번호판 문자인식에 실패했습니다", Toast.LENGTH_LONG).show();
-//            }
+            if(result.length() >= 7 && result.length() <= 8) {
+                textView.setText(result);
+                Toast.makeText(OpenActivity.this, "" + result, Toast.LENGTH_SHORT).show();
+            }
+            else {
+                textView.setText("");
+                Toast.makeText(OpenActivity.this, "번호판 문자인식에 실패했습니다", Toast.LENGTH_LONG).show();
+            }
 
             btnTakePicture.setEnabled(true);
             btnTakePicture.setText("텍스트 인식");
