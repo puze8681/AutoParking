@@ -1,10 +1,13 @@
 package kr.puze.autoparking
 
+import android.app.Dialog
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.android.synthetic.main.dialog_done.*
 import kotlinx.android.synthetic.main.item_car.view.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -20,7 +23,19 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context) : 
             itemClick?.onItemClick(holder.itemView, position)
         }
         holder.itemView.image_edit.setOnClickListener {
-//            MainActivity().removeItem(position)
+            val dialog = Dialog(context)
+            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+            dialog.setContentView(R.layout.dialog_done)
+            dialog.text_type.text = "번호판을 수정하시겠습니까?"
+            dialog.edit_dialog_text.setText(items[position].carName.toString())
+            dialog.button_dialog_cancel.setOnClickListener {
+                dialog.dismiss()
+            }
+            dialog.button_dialog_check.setOnClickListener {
+                MainActivity().editItem(position,  dialog.edit_dialog_text.toString())
+                dialog.dismiss()
+            }
+            dialog.show()
         }
     }
 

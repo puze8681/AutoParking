@@ -8,14 +8,27 @@
     android:weightSum="1"
     tools:context=".MainActivity">
 
-    <TextView
-        android:text="정산"
-        android:gravity="center"
-        android:textColor="#000"
-        android:textSize="24sp"
-        android:id="@+id/text_total"
+    <RelativeLayout
+        android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_height="56dp"/>
+        android:layout_height="56dp">
+        <Button
+            android:id="@+id/button_total"
+            android:layout_alignParentLeft="true"
+            android:text="오늘 주차 요금 정산"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"/>
+        <TextView
+            android:layout_toRightOf="@id/button_total"
+            android:layout_alignParentRight="true"
+            android:text="0 won"
+            android:gravity="center"
+            android:textColor="#000"
+            android:textSize="24sp"
+            android:id="@+id/text_total"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"/>
+    </RelativeLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"

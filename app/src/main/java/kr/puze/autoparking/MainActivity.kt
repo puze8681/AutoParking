@@ -6,11 +6,13 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.database.*
 import kotlinx.android.synthetic.main.activity_main.*
+import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -36,9 +38,11 @@ class MainActivity : AppCompatActivity() {
 
         myRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
+                Log.d("LOGTAG", "myRef OnDataChange")
                 item.clear()
                 dataSnapshot.children.forEach{
                     it.getValue(Data::class.java)?.let { data ->
+                        Log.d("LOGTAG", "myRef $data")
                         item.add(CarData(data.carName, data.timeStamp))
                     }
                 }
@@ -49,8 +53,9 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        text_total.setOnClickListener {
-
+        button_total.setOnClickListener {
+            text_total.text = "${getTodayPrice()} 원"
+            recyclerAdapter.notifyDataSetChanged()
         }
 
         text_enter.setOnClickListener {
@@ -63,11 +68,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun addItem(text: String){
+        Log.d("LOGTAG", "addItem")
         item.add(CarData(text, Calendar.getInstance().timeInMillis))
         myRef.setValue(item)
     }
 
+    fun editItem(position: Int, text: String){
+        item[position].carName = text
+        myRef.setValue(item)
+    }
+
     fun findItem(text: String){
+        Log.d("LOGTAG", "findItem")
         loop@ for(i in 0 until item.size){
             if(item[i].carName.equals(text)){
                 removeItem(i)
@@ -77,15 +89,34 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun removeItem(position: Int) {
+        Log.d("LOGTAG", "removeItem")
         item.removeAt(position)
         myRef.setValue(item)
     }
 
-    @IgnoreExtraProperties
-    data class Data(
-        var carName: String = "",
-        var timeStamp: Long = 0
-    )
+    fun getTodayPrice(): Int{
+        Log.d("LOGTAG", "getTodayPrice")
+        var price = 0
+        loop@ for(i in 0 until item.size){
+            if(getTime(item[i].time) == getTime(Calendar.getInstance().timeInMillis)) price += calculatePay(item[i].time)
+            else break@loop
+        }
+        return price
+    }
+
+    private fun getTime(timeStamp: Long): String{
+        return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(timeStamp)
+    }
+
+    //30분 500원, 10분 초과시 200원
+    private fun calculatePay(prevTime: Long): Int {
+        var enterMinute = (Calendar.getInstance().timeInMillis - prevTime) / 60000
+        if (enterMinute <= 30) {
+            return 500
+        } else {
+            return (500 + ((((enterMinute - 30) / 10) + 1) * 200)).toInt()
+        }
+    }
 
     @RequiresApi(Build.VERSION_CODES.M)
     private fun checkPermission(type: Int) {
@@ -108,4 +139,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    @IgnoreExtraProperties
+    data class Data(
+        var carName: String = "",
+        var timeStamp: Long = 0,
+        var price: Int = 0
+    )
 }
