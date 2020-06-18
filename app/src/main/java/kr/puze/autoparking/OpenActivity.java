@@ -603,7 +603,7 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
         }
     }
 
-    private void dialogDone(int type, String text) {
+    private void dialogDone(final int type, String text) {
         final Dialog dialog = new Dialog(this);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setContentView(R.layout.dialog_done);
@@ -624,7 +624,12 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
         buttonCheck.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                editText.getText().toString();
+                if(type == 0){
+                    new MainActivity().addItem(editText.getText().toString());
+                }else{
+                    new MainActivity().findItem(editText.getText().toString());
+                }
+
                 dialog.dismiss();
                 finish();
             }

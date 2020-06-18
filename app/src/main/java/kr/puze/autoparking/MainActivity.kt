@@ -11,6 +11,8 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.database.*
 import kotlinx.android.synthetic.main.activity_main.*
+import java.util.*
+import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity() {
 
@@ -53,13 +55,24 @@ class MainActivity : AppCompatActivity() {
 
         text_enter.setOnClickListener {
             checkPermission(0)
-//            item.add(CarData("", Calendar.getInstance().timeInMillis))
-//            myRef.setValue(item)
         }
 
         text_exit.setOnClickListener {
             checkPermission(1)
-//            removeItem(0)
+        }
+    }
+
+    fun addItem(text: String){
+        item.add(CarData(text, Calendar.getInstance().timeInMillis))
+        myRef.setValue(item)
+    }
+
+    fun findItem(text: String){
+        loop@ for(i in 0 until item.size){
+            if(item[i].carName.equals(text)){
+                removeItem(i)
+                break@loop
+            }
         }
     }
 
