@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.android.synthetic.main.dialog_delete.*
 import kotlinx.android.synthetic.main.dialog_done.*
 import kotlinx.android.synthetic.main.item_car.view.*
 import java.text.SimpleDateFormat
@@ -33,6 +34,22 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context) : 
             }
             dialog.button_dialog_check.setOnClickListener {
                 MainActivity().editItem(position,  dialog.edit_dialog_text.text.toString())
+                dialog.dismiss()
+            }
+            dialog.show()
+        }
+
+        holder.itemView.image_delete.setOnClickListener {
+            val dialog = Dialog(context)
+            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+            dialog.setContentView(R.layout.dialog_delete)
+            dialog.text_car.text = items[position].carName.toString()
+            dialog.text_price.text = "${calculatePay(items[position].timeStamp)}원"
+            dialog.button_dialog_cancel_delete.setOnClickListener {
+                dialog.dismiss()
+            }
+            dialog.button_dialog_check_delete.setOnClickListener {
+                MainActivity().removeItem(position)
                 dialog.dismiss()
             }
             dialog.show()
@@ -69,5 +86,15 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context) : 
 
     interface ItemClick {
         fun onItemClick(view: View?, position: Int)
+    }
+
+    //30분 500원, 10분 초과시 200원
+    fun calculatePay(prevTime: Long): Int {
+        var enterMinute = (Calendar.getInstance().timeInMillis - prevTime) / 60000
+        if (enterMinute <= 30) {
+            return 500
+        } else {
+            return (500 + ((((enterMinute - 30) / 10) + 1) * 200)).toInt()
+        }
     }
 }

@@ -25,6 +25,7 @@ class MainActivity : AppCompatActivity() {
         val item = ArrayList<CarData>()
         lateinit var context: Context
         private var REQUEST_PERMISSION_CODE = 100
+        private lateinit var prefUtil: PrefUtil
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
@@ -32,6 +33,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         context = this@MainActivity
+        prefUtil = PrefUtil(this@MainActivity, getTime(Calendar.getInstance().timeInMillis))
         recyclerAdapter = CarRecyclerAdapter(item, this@MainActivity)
         recycler_main.adapter = recyclerAdapter
         recyclerAdapter.notifyDataSetChanged()
@@ -54,7 +56,7 @@ class MainActivity : AppCompatActivity() {
         })
 
         button_total.setOnClickListener {
-            text_total.text = "${getTodayPrice()} 원"
+            text_total.text = "${prefUtil.todayPrice} 원"
             recyclerAdapter.notifyDataSetChanged()
         }
 
@@ -91,18 +93,10 @@ class MainActivity : AppCompatActivity() {
 
     fun removeItem(position: Int) {
         Log.d("LOGTAG", "removeItem")
+        prefUtil.todayPrice += calculatePay(item[position].timeStamp)
+        text_total.text = "${prefUtil.todayPrice} 원"
         item.removeAt(position)
         myRef.setValue(item)
-    }
-
-    fun getTodayPrice(): Int{
-        Log.d("LOGTAG", "getTodayPrice")
-        var price = 0
-        loop@ for(i in 0 until item.size){
-            if(getTime(item[i].timeStamp) == getTime(Calendar.getInstance().timeInMillis)) price += calculatePay(item[i].timeStamp)
-            else break@loop
-        }
-        return price
     }
 
     private fun getTime(timeStamp: Long): String{
