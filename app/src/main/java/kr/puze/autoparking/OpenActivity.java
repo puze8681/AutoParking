@@ -77,6 +77,10 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
     private TextView textView;
     private TextureView textureView;
     private int isRecognized = 0;
+    private boolean CameraOnOffFlag = true;
+
+    private ProgressCircleDialog m_objProgressCircle = null; // 원형 프로그레스바
+    private boolean ProgressFlag = false; // 프로그레스바 상태 플래그
 
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
 
@@ -107,6 +111,7 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_open);
 
+        m_objProgressCircle = new ProgressCircleDialog(this);
         imageView = findViewById(R.id.imageView);
         imageResult = findViewById(R.id.imageResult);
         textView = findViewById(R.id.textView);
@@ -126,7 +131,7 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
                 takePicture();
             }
         });
-        btnDone.setClickable(false);
+        btnDone.setEnabled(false);
         final int type = getIntent().getIntExtra("type", 0);
         if(type == 0) {
             btnDone.setText("인식한 번호판 차량 입차하기");
@@ -283,6 +288,9 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
+                                        if(!ProgressFlag)
+                                            m_objProgressCircle = ProgressCircleDialog.show(getApplicationContext(), "", "", true);
+                                        ProgressFlag = true;
                                         imageResult.setImageResource(0);
                                         textView.setText("");
                                         imageView.setImageBitmap(imgBase);
@@ -586,18 +594,13 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
             String match = "[^\uAC00-\uD7A3xfe0-9a-zA-Z\\s]";
             result = result.replaceAll(match, " ");
             result = result.replaceAll(" ", "");
-            if (result.length() >= 7 && result.length() <= 8) {
-                textView.setText(result);
-                Toast.makeText(OpenActivity.this, "" + result, Toast.LENGTH_SHORT).show();
-                isRecognized = 2;
-                btnDone.setClickable(true);
-            } else {
-                textView.setText("");
-                Toast.makeText(OpenActivity.this, "번호판 문자인식에 실패했습니다", Toast.LENGTH_LONG).show();
-                isRecognized = 0;
-                btnDone.setClickable(false);
-            }
-
+            if(m_objProgressCircle.isShowing() && m_objProgressCircle !=null)
+                m_objProgressCircle.dismiss();
+            ProgressFlag = false;
+            textView.setText(result);
+            Toast.makeText(OpenActivity.this, "" + result, Toast.LENGTH_SHORT).show();
+            isRecognized = 2;
+            btnDone.setEnabled(true);
             btnTakePicture.setEnabled(true);
             btnTakePicture.setText("번호판 인식");
         }
