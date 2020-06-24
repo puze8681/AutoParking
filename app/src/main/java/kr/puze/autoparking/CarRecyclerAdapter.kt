@@ -1,5 +1,6 @@
 package kr.puze.autoparking
 
+import android.app.Activity
 import android.app.Dialog
 import android.content.Context
 import android.view.LayoutInflater
@@ -13,7 +14,7 @@ import kotlinx.android.synthetic.main.item_car.view.*
 import java.text.SimpleDateFormat
 import java.util.*
 
-class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context) : RecyclerView.Adapter<CarRecyclerAdapter.ViewHolder>() {
+class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context, var activity: Activity) : RecyclerView.Adapter<CarRecyclerAdapter.ViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return ViewHolder(LayoutInflater.from(context).inflate(R.layout.item_car, null))
     }
@@ -24,7 +25,7 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context) : 
             itemClick?.onItemClick(holder.itemView, position)
         }
         holder.itemView.image_edit.setOnClickListener {
-            val dialog = Dialog(context)
+            val dialog = Dialog(activity)
             dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
             dialog.setContentView(R.layout.dialog_done)
             dialog.text_type.text = "번호판을 수정하시겠습니까?"
@@ -40,7 +41,7 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context) : 
         }
 
         holder.itemView.image_delete.setOnClickListener {
-            val dialog = Dialog(context)
+            val dialog = Dialog(activity)
             dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
             dialog.setContentView(R.layout.dialog_delete)
             dialog.text_car.text = items[position].carName.toString()

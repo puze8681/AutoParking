@@ -1,17 +1,21 @@
 package kr.puze.autoparking
 
 import android.Manifest
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.Window
+import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.database.*
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.dialog_done.*
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
@@ -26,18 +30,20 @@ class MainActivity : AppCompatActivity() {
         lateinit var context: Context
         private var REQUEST_PERMISSION_CODE = 100
         private lateinit var prefUtil: PrefUtil
+        lateinit var text_price: TextView
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        context = this@MainActivity
-        prefUtil = PrefUtil(this@MainActivity, getTime(Calendar.getInstance().timeInMillis))
-        recyclerAdapter = CarRecyclerAdapter(item, this@MainActivity)
+        context = applicationContext
+        prefUtil = PrefUtil(applicationContext, getTime(Calendar.getInstance().timeInMillis))
+        recyclerAdapter = CarRecyclerAdapter(item, context, this)
         recycler_main.adapter = recyclerAdapter
         recyclerAdapter.notifyDataSetChanged()
-
+        text_price = findViewById(R.id.text_total)
+        text_price.text = "${prefUtil.todayPrice} 원"
         myRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
                 Log.d("LOGTAG", "myRef OnDataChange")
@@ -48,6 +54,7 @@ class MainActivity : AppCompatActivity() {
                         item.add(CarData(data.carName, data.timeStamp))
                     }
                 }
+                text_price.text = "${prefUtil.todayPrice} 원"
                 recyclerAdapter.notifyDataSetChanged()
             }
 
@@ -56,16 +63,18 @@ class MainActivity : AppCompatActivity() {
         })
 
         button_total.setOnClickListener {
-            text_total.text = "${prefUtil.todayPrice} 원"
+            text_price.text = "${prefUtil.todayPrice} 원"
             recyclerAdapter.notifyDataSetChanged()
         }
 
         text_enter.setOnClickListener {
-            checkPermission(0)
+            dialogDone(0)
+//            checkPermission(0)
         }
 
         text_exit.setOnClickListener {
-            checkPermission(1)
+            dialogDone(1)
+//            checkPermission(1)
         }
     }
 
@@ -92,9 +101,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun removeItem(position: Int) {
-        Log.d("LOGTAG", "removeItem")
         prefUtil.todayPrice += calculatePay(item[position].timeStamp)
-        text_total.text = "${prefUtil.todayPrice} 원"
+        text_price.text = "${prefUtil.todayPrice} 원"
+        Log.d("LOGTAG", "removeItem")
         item.removeAt(position)
         myRef.setValue(item)
     }
@@ -135,6 +144,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun dialogDone(type: Int) {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_done)
+        if (type == 0) dialog.text_type.text = "입차하시겠습니까?" else dialog.text_type.text = "출차하시겠습니까?"
+        dialog.button_dialog_cancel.setOnClickListener { dialog.dismiss() }
+        dialog.button_dialog_check.setOnClickListener {
+            if (type == 0) {
+                addItem(dialog.edit_dialog_text.text.toString())
+            } else {
+                findItem(dialog.edit_dialog_text.text.toString())
+            }
+            dialog.dismiss()
+        }
+        dialog.show()
+    }
     @IgnoreExtraProperties
     data class Data(
         var carName: String = "",

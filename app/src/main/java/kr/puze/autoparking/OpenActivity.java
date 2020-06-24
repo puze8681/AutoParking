@@ -76,11 +76,9 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
     private ImageView imageResult;
     private TextView textView;
     private TextureView textureView;
+    private Context context;
     private int isRecognized = 0;
     private boolean CameraOnOffFlag = true;
-
-    private ProgressCircleDialog m_objProgressCircle = null; // 원형 프로그레스바
-    private boolean ProgressFlag = false; // 프로그레스바 상태 플래그
 
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
 
@@ -111,7 +109,7 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_open);
 
-        m_objProgressCircle = new ProgressCircleDialog(this);
+        context = getApplicationContext();
         imageView = findViewById(R.id.imageView);
         imageResult = findViewById(R.id.imageResult);
         textView = findViewById(R.id.textView);
@@ -288,9 +286,6 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        if(!ProgressFlag)
-                                            m_objProgressCircle = ProgressCircleDialog.show(getApplicationContext(), "", "", true);
-                                        ProgressFlag = true;
                                         imageResult.setImageResource(0);
                                         textView.setText("");
                                         imageView.setImageBitmap(imgBase);
@@ -594,9 +589,6 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
             String match = "[^\uAC00-\uD7A3xfe0-9a-zA-Z\\s]";
             result = result.replaceAll(match, " ");
             result = result.replaceAll(" ", "");
-            if(m_objProgressCircle.isShowing() && m_objProgressCircle !=null)
-                m_objProgressCircle.dismiss();
-            ProgressFlag = false;
             textView.setText(result);
             Toast.makeText(OpenActivity.this, "" + result, Toast.LENGTH_SHORT).show();
             isRecognized = 2;

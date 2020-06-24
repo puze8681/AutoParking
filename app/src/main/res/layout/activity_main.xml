@@ -21,7 +21,7 @@
         <TextView
             android:layout_toRightOf="@id/button_total"
             android:layout_alignParentRight="true"
-            android:text="0 won"
+            android:text="0 원"
             android:gravity="center"
             android:textColor="#000"
             android:textSize="24sp"
