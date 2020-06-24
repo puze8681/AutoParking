@@ -7,10 +7,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
+import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.dialog_delete.*
-import kotlinx.android.synthetic.main.dialog_done.*
+import kotlinx.android.synthetic.main.dialog_edit.*
 import kotlinx.android.synthetic.main.item_car.view.*
+import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -27,14 +29,21 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context, va
         holder.itemView.image_edit.setOnClickListener {
             val dialog = Dialog(activity)
             dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-            dialog.setContentView(R.layout.dialog_done)
-            dialog.text_type.text = "번호판을 수정하시겠습니까?"
-            dialog.edit_dialog_text.setText(items[position].carName.toString())
-            dialog.button_dialog_cancel.setOnClickListener {
+            dialog.setContentView(R.layout.dialog_edit)
+            dialog.edit_dialog_car_edit.setText(items[position].carName.toString())
+            dialog.edit_dialog_time_edit.setText(getTime(items[position].timeStamp))
+            dialog.button_dialog_cancel_edit.setOnClickListener {
                 dialog.dismiss()
             }
-            dialog.button_dialog_check.setOnClickListener {
-                MainActivity().editItem(position,  dialog.edit_dialog_text.text.toString())
+            dialog.button_dialog_check_edit.setOnClickListener {
+                val editCar = dialog.edit_dialog_car_edit.text.toString()
+                try {
+                    val editDate = SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse(dialog.edit_dialog_time_edit.text.toString()).time
+                    MainActivity().editItem(position, editCar, editDate)
+                }catch (e: ParseException){
+                    Toast.makeText(context,"시간 변경 양식이 올바르지 않습니다.", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                }
                 dialog.dismiss()
             }
             dialog.show()
@@ -68,17 +77,17 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context, va
             itemView.text_pay.text = "${calculatePay(item.timeStamp)}원"
         }
 
-        fun getTime(timeStamp: Long): String{
+        private fun getTime(timeStamp: Long): String{
             return SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.getDefault()).format(timeStamp)
         }
 
-        //30분 500원, 10분 초과시 200원
-        fun calculatePay(prevTime: Long): Int {
-            var enterMinute = (Calendar.getInstance().timeInMillis - prevTime) / 60000
-            if (enterMinute <= 30) {
-                return 500
-            } else {
-                return (500 + ((((enterMinute - 30) / 10) + 1) * 200)).toInt()
+        //4분까진 0원, 30분 500원, 10분 초과시 200원
+        private fun calculatePay(prevTime: Long): Int {
+            val enterMinute = (Calendar.getInstance().timeInMillis - prevTime) / 60000
+            return when {
+                enterMinute <= 4 -> 0
+                enterMinute <= 30 -> 500
+                else -> (500 + ((((enterMinute - 30) / 10) + 1) * 200)).toInt()
             }
         }
     }
@@ -89,13 +98,17 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context, va
         fun onItemClick(view: View?, position: Int)
     }
 
-    //30분 500원, 10분 초과시 200원
-    fun calculatePay(prevTime: Long): Int {
-        var enterMinute = (Calendar.getInstance().timeInMillis - prevTime) / 60000
-        if (enterMinute <= 30) {
-            return 500
-        } else {
-            return (500 + ((((enterMinute - 30) / 10) + 1) * 200)).toInt()
+    private fun getTime(timeStamp: Long): String{
+        return SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.getDefault()).format(timeStamp)
+    }
+
+    //4분까진 0원, 30분 500원, 10분 초과시 200원
+    private fun calculatePay(prevTime: Long): Int {
+        val enterMinute = (Calendar.getInstance().timeInMillis - prevTime) / 60000
+        return when {
+            enterMinute <= 4 -> 0
+            enterMinute <= 30 -> 500
+            else -> (500 + ((((enterMinute - 30) / 10) + 1) * 200)).toInt()
         }
     }
 }

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    android:layout_gravity="center"
+    android:gravity="center"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="280dp"
+    android:layout_height="wrap_content">
+    <TextView
+        android:layout_marginRight="24dp"
+        android:layout_marginLeft="24dp"
+        android:layout_marginTop="23dp"
+        android:layout_marginBottom="17dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:textColor="#000000"
+        android:textStyle="bold"
+        android:text="수정하시겠습니까?"/>
+    <EditText
+        android:id="@+id/edit_dialog_car_edit"
+        android:hint="차량 번호를 변경해주세요."
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="24dp"
+        android:layout_marginLeft="24dp"
+        android:textSize="14sp"
+        android:textColor="#000000"
+        android:letterSpacing="0.01"/>
+    <EditText
+        android:id="@+id/edit_dialog_time_edit"
+        android:hint="시간을 변경해주세요."
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="24dp"
+        android:layout_marginLeft="24dp"
+        android:textSize="14sp"
+        android:textColor="#000000"
+        android:letterSpacing="0.01"/>
+    <LinearLayout
+        android:layout_marginTop="19dp"
+        android:layout_marginBottom="8dp"
+        android:layout_gravity="right"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp">
+        <TextView
+            android:id="@+id/button_dialog_cancel_edit"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:textSize="11sp"
+            android:textColor="#DA3831"
+            android:textStyle="bold"
+            android:lineSpacingExtra="2sp"
+            android:gravity="center"
+            android:text="취소" />
+        <TextView
+            android:id="@+id/button_dialog_check_edit"
+            android:layout_marginStart="21dp"
+            android:layout_marginEnd="19dp"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:textSize="11sp"
+            android:textColor="#4CAF50"
+            android:textStyle="bold"
+            android:lineSpacingExtra="2sp"
+            android:gravity="center"
+            android:text="확인" />
+    </LinearLayout>
+</LinearLayout>

@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.database.*
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.dialog_done.*
+import kotlinx.android.synthetic.main.dialog_exit.*
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
@@ -30,7 +31,7 @@ class MainActivity : AppCompatActivity() {
         lateinit var context: Context
         private var REQUEST_PERMISSION_CODE = 100
         private lateinit var prefUtil: PrefUtil
-        lateinit var text_price: TextView
+        lateinit var textPrice: TextView
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
@@ -42,8 +43,8 @@ class MainActivity : AppCompatActivity() {
         recyclerAdapter = CarRecyclerAdapter(item, context, this)
         recycler_main.adapter = recyclerAdapter
         recyclerAdapter.notifyDataSetChanged()
-        text_price = findViewById(R.id.text_total)
-        text_price.text = "${prefUtil.todayPrice} 원"
+        textPrice = findViewById(R.id.text_total)
+        textPrice.text = "${prefUtil.todayPrice} 원"
         myRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
                 Log.d("LOGTAG", "myRef OnDataChange")
@@ -54,7 +55,7 @@ class MainActivity : AppCompatActivity() {
                         item.add(CarData(data.carName, data.timeStamp))
                     }
                 }
-                text_price.text = "${prefUtil.todayPrice} 원"
+                textPrice.text = "${prefUtil.todayPrice} 원"
                 recyclerAdapter.notifyDataSetChanged()
             }
 
@@ -63,7 +64,7 @@ class MainActivity : AppCompatActivity() {
         })
 
         button_total.setOnClickListener {
-            text_price.text = "${prefUtil.todayPrice} 원"
+            textPrice.text = "${prefUtil.todayPrice} 원"
             recyclerAdapter.notifyDataSetChanged()
         }
 
@@ -85,8 +86,9 @@ class MainActivity : AppCompatActivity() {
         myRef.setValue(item)
     }
 
-    fun editItem(position: Int, text: String){
+    fun editItem(position: Int, text: String, time: Long){
         item[position].carName = text
+        item[position].timeStamp = time
         myRef.setValue(item)
     }
 
@@ -101,9 +103,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun removeItem(position: Int) {
+        val enterMinute = (Calendar.getInstance().timeInMillis - item[position].timeStamp) / 60000
         prefUtil.todayPrice += calculatePay(item[position].timeStamp)
-        text_price.text = "${prefUtil.todayPrice} 원"
+        textPrice.text = "${prefUtil.todayPrice} 원"
         Log.d("LOGTAG", "removeItem")
+        dialogExit(item[position].carName!!, enterMinute.toInt(), prefUtil.todayPrice)
         item.removeAt(position)
         myRef.setValue(item)
     }
@@ -112,13 +116,13 @@ class MainActivity : AppCompatActivity() {
         return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(timeStamp)
     }
 
-    //30분 500원, 10분 초과시 200원
+    //4분까진 0원, 30분 500원, 10분 초과시 200원
     private fun calculatePay(prevTime: Long): Int {
-        var enterMinute = (Calendar.getInstance().timeInMillis - prevTime) / 60000
-        if (enterMinute <= 30) {
-            return 500
-        } else {
-            return (500 + ((((enterMinute - 30) / 10) + 1) * 200)).toInt()
+        val enterMinute = (Calendar.getInstance().timeInMillis - prevTime) / 60000
+        return when {
+            enterMinute <= 4 -> 0
+            enterMinute <= 30 -> 500
+            else -> (500 + ((((enterMinute - 30) / 10) + 1) * 200)).toInt()
         }
     }
 
@@ -165,4 +169,17 @@ class MainActivity : AppCompatActivity() {
         var carName: String = "",
         var timeStamp: Long = 0
     )
+
+    private fun dialogExit(carName: String, time: Int, price: Int){
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_exit)
+        dialog.text_car_exit.text = carName
+        dialog.text_time_exit.text = "$time 분"
+        dialog.text_price_exit.text = "$price 원"
+        dialog.button_dialog_check_exit.setOnClickListener {
+            dialog.dismiss()
+        }
+        dialog.show()
+    }
 }
