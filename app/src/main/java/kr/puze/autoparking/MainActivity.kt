@@ -24,6 +24,7 @@ import kotlin.collections.ArrayList
 class MainActivity : AppCompatActivity() {
 
     companion object{
+        lateinit var dialogContext: Context
         lateinit var recyclerAdapter: CarRecyclerAdapter
         val firebaseDatabase = FirebaseDatabase.getInstance()
         var myRef = firebaseDatabase.reference.child("list")
@@ -38,6 +39,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        dialogContext = this
         context = applicationContext
         prefUtil = PrefUtil(applicationContext, getTime(Calendar.getInstance().timeInMillis))
         recyclerAdapter = CarRecyclerAdapter(item, context, this)
@@ -84,22 +86,29 @@ class MainActivity : AppCompatActivity() {
         Log.d("LOGTAG", getTime(Calendar.getInstance().timeInMillis))
         item.add(CarData(text, Calendar.getInstance().timeInMillis))
         myRef.setValue(item)
+        Toast.makeText(this@MainActivity,"입차완료.", Toast.LENGTH_SHORT).show()
     }
 
     fun editItem(position: Int, text: String, time: Long){
         item[position].carName = text
         item[position].timeStamp = time
         myRef.setValue(item)
+        Toast.makeText(this@MainActivity,"출차완료.", Toast.LENGTH_SHORT).show()
     }
 
-    fun findItem(text: String){
+    fun findItem(text: String, type: Int){
         Log.d("LOGTAG", "findItem")
+        var overlap = false
         loop@ for(i in 0 until item.size){
             if(item[i].carName.equals(text)){
-                removeItem(i)
+                overlap = true
+                if(type == 1) removeItem(i)
                 break@loop
             }
         }
+        if(type == 0 && !overlap) addItem(text)
+        else if(type == 0 && overlap) Toast.makeText(this@MainActivity,"차량번호 중복입니다.", Toast.LENGTH_SHORT).show()
+
     }
 
     fun removeItem(position: Int) {
@@ -107,7 +116,7 @@ class MainActivity : AppCompatActivity() {
         prefUtil.todayPrice += calculatePay(item[position].timeStamp)
         textPrice.text = "${prefUtil.todayPrice} 원"
         Log.d("LOGTAG", "removeItem")
-        dialogExit(item[position].carName!!, enterMinute.toInt(), prefUtil.todayPrice)
+        dialogExit(item[position].carName!!, enterMinute.toInt(), calculatePay(item[position].timeStamp))
         item.removeAt(position)
         myRef.setValue(item)
     }
@@ -149,16 +158,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun dialogDone(type: Int) {
-        val dialog = Dialog(this)
+        val dialog = Dialog(dialogContext)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         dialog.setContentView(R.layout.dialog_done)
         if (type == 0) dialog.text_type.text = "입차하시겠습니까?" else dialog.text_type.text = "출차하시겠습니까?"
         dialog.button_dialog_cancel.setOnClickListener { dialog.dismiss() }
         dialog.button_dialog_check.setOnClickListener {
             if (type == 0) {
-                addItem(dialog.edit_dialog_text.text.toString())
+                findItem(dialog.edit_dialog_text.text.toString(), type)
             } else {
-                findItem(dialog.edit_dialog_text.text.toString())
+                findItem(dialog.edit_dialog_text.text.toString(), type)
             }
             dialog.dismiss()
         }
@@ -171,7 +180,7 @@ class MainActivity : AppCompatActivity() {
     )
 
     private fun dialogExit(carName: String, time: Int, price: Int){
-        val dialog = Dialog(this)
+        val dialog = Dialog(dialogContext)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         dialog.setContentView(R.layout.dialog_exit)
         dialog.text_car_exit.text = carName

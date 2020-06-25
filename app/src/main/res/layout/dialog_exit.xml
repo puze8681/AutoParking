@@ -13,7 +13,7 @@
         android:layout_marginBottom="17dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="14sp"
+        android:textSize="20sp"
         android:textColor="#000000"
         android:textStyle="bold"
         android:text="출차 차량 안내"/>
@@ -23,7 +23,7 @@
         android:layout_height="wrap_content"
         android:layout_marginRight="24dp"
         android:layout_marginLeft="24dp"
-        android:textSize="14sp"
+        android:textSize="20sp"
         android:textColor="#000000"
         android:letterSpacing="0.01"
         android:text="123가4567"/>
@@ -33,7 +33,7 @@
         android:layout_height="wrap_content"
         android:layout_marginRight="24dp"
         android:layout_marginLeft="24dp"
-        android:textSize="14sp"
+        android:textSize="20sp"
         android:textColor="#000000"
         android:letterSpacing="0.01"
         android:text="3시간"/>
@@ -43,7 +43,7 @@
         android:layout_height="wrap_content"
         android:layout_marginRight="24dp"
         android:layout_marginLeft="24dp"
-        android:textSize="14sp"
+        android:textSize="20sp"
         android:textColor="#000000"
         android:letterSpacing="0.01"
         android:text="500원"/>
@@ -61,7 +61,7 @@
             android:layout_marginEnd="19dp"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:textSize="11sp"
+            android:textSize="18sp"
             android:textColor="#4CAF50"
             android:textStyle="bold"
             android:lineSpacingExtra="2sp"

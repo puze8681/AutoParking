@@ -620,9 +620,9 @@ public class OpenActivity extends AppCompatActivity implements TextureView.Surfa
             @Override
             public void onClick(View v) {
                 if(type == 0){
-                    new MainActivity().addItem(editText.getText().toString());
+                    new MainActivity().findItem(editText.getText().toString(), type);
                 }else{
-                    new MainActivity().findItem(editText.getText().toString());
+                    new MainActivity().findItem(editText.getText().toString(), type);
                 }
 
                 dialog.dismiss();
