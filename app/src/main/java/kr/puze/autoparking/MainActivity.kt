@@ -86,14 +86,14 @@ class MainActivity : AppCompatActivity() {
         Log.d("LOGTAG", getTime(Calendar.getInstance().timeInMillis))
         item.add(CarData(text, Calendar.getInstance().timeInMillis))
         myRef.setValue(item)
-        Toast.makeText(this@MainActivity,"입차완료.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(dialogContext,"입차완료.", Toast.LENGTH_SHORT).show()
     }
 
     fun editItem(position: Int, text: String, time: Long){
         item[position].carName = text
         item[position].timeStamp = time
         myRef.setValue(item)
-        Toast.makeText(this@MainActivity,"출차완료.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(dialogContext,"수정완료.", Toast.LENGTH_SHORT).show()
     }
 
     fun findItem(text: String, type: Int){
@@ -119,6 +119,7 @@ class MainActivity : AppCompatActivity() {
         dialogExit(item[position].carName!!, enterMinute.toInt(), calculatePay(item[position].timeStamp))
         item.removeAt(position)
         myRef.setValue(item)
+        Toast.makeText(dialogContext,"출차완료.", Toast.LENGTH_SHORT).show()
     }
 
     private fun getTime(timeStamp: Long): String{
