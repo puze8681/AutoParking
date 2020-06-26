@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.dialog_delete.*
@@ -31,6 +32,14 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context, va
             val dialog = Dialog(activity)
             dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
             dialog.setContentView(R.layout.dialog_edit)
+            dialog.edit_dialog_car_edit.onFocusChangeListener =
+                View.OnFocusChangeListener { v, _ ->
+                    dialog.edit_dialog_car_edit.post(Runnable {
+                        val inputMethodManager: InputMethodManager = activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                        inputMethodManager.showSoftInput(dialog.edit_dialog_car_edit, InputMethodManager.SHOW_IMPLICIT)
+                    })
+                }
+            dialog.edit_dialog_car_edit.requestFocus()
             dialog.edit_dialog_car_edit.setText(items[position].carName.toString())
             dialog.edit_dialog_time_edit.setText(getTime(items[position].timeStamp))
             dialog.button_dialog_cancel_edit.setOnClickListener {
@@ -39,7 +48,7 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context, va
             dialog.button_dialog_check_edit.setOnClickListener {
                 val editCar = dialog.edit_dialog_car_edit.text.toString()
                 try {
-                    val editDate = SimpleDateFormat("yyyy-MM-dd hh:mm").parse(dialog.edit_dialog_time_edit.text.toString()).time
+                    val editDate = SimpleDateFormat("yyyy-MM-dd HH:mm").parse(dialog.edit_dialog_time_edit.text.toString()).time
                     MainActivity().editItem(position, editCar, editDate)
                 }catch (e: ParseException){
                     Toast.makeText(context,"시간 변경 양식이 올바르지 않습니다.", Toast.LENGTH_SHORT).show()
@@ -95,7 +104,7 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context, va
         }
 
         private fun getTime(timeStamp: Long): String{
-            return SimpleDateFormat("yyyy-MM-dd hh:mm", Locale.getDefault()).format(timeStamp)
+            return SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(timeStamp)
         }
 
         //4분까진 0원, 30분 500원, 10분 초과시 200원, 최대 6000
@@ -118,7 +127,7 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context, va
     }
 
     private fun getTime(timeStamp: Long): String{
-        return SimpleDateFormat("yyyy-MM-dd hh:mm", Locale.getDefault()).format(timeStamp)
+        return SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(timeStamp)
     }
 
     //4분까진 0원, 30분 500원, 10분 초과시 200원원, 최대 6000원

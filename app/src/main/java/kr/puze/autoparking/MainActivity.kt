@@ -8,7 +8,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.view.Window
+import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -17,9 +19,12 @@ import com.google.firebase.database.*
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.dialog_done.*
 import kotlinx.android.synthetic.main.dialog_exit.*
+import kotlinx.android.synthetic.main.dialog_exit.button_dialog_check_exit
+import kotlinx.android.synthetic.main.dialog_out.*
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -49,6 +54,7 @@ class MainActivity : AppCompatActivity() {
         recyclerAdapter.notifyDataSetChanged()
         textPrice = findViewById(R.id.text_total)
         textPrice.text = "${prefUtil.todayPrice} 원"
+
         myRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
                 Log.d("LOGTAG", "myRef OnDataChange")
@@ -125,7 +131,22 @@ class MainActivity : AppCompatActivity() {
         Log.d("LOGTAG", getTime(Calendar.getInstance().timeInMillis))
         item.add(CarData(text, Calendar.getInstance().timeInMillis))
         myRef.setValue(item)
-        Toast.makeText(dialogContext,"입차완료.", Toast.LENGTH_SHORT).show()
+        findOutItem(text)
+    }
+
+    fun findOutItem(text: String){
+        var overlap = false
+        var overlapIndex = 0
+        loop@ for(i in 0 until itemOut.size){
+            if(itemOut[i].carName.equals(text)){
+                overlap = true
+                overlapIndex = i
+                break@loop
+            }
+        }
+        if(overlap) dialogOut(text, itemOut[overlapIndex].time, itemOut[overlapIndex].price)
+        else Toast.makeText(dialogContext,"입차완료.", Toast.LENGTH_SHORT).show()
+
     }
 
     fun editItem(position: Int, text: String, time: Long){
@@ -195,6 +216,14 @@ class MainActivity : AppCompatActivity() {
         val dialog = Dialog(dialogContext)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         dialog.setContentView(R.layout.dialog_done)
+        dialog.edit_dialog_text.onFocusChangeListener =
+            View.OnFocusChangeListener { v, _ ->
+                dialog.edit_dialog_text.post(Runnable {
+                    val inputMethodManager: InputMethodManager = this@MainActivity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                    inputMethodManager.showSoftInput(dialog.edit_dialog_text, InputMethodManager.SHOW_IMPLICIT)
+                })
+            }
+        dialog.edit_dialog_text.requestFocus()
         if (type == 0) dialog.text_type.text = "입차하시겠습니까?" else dialog.text_type.text = "출차하시겠습니까?"
         dialog.button_dialog_cancel.setOnClickListener { dialog.dismiss() }
         dialog.button_dialog_check.setOnClickListener {
@@ -215,6 +244,19 @@ class MainActivity : AppCompatActivity() {
         dialog.text_car_exit.text = carName
         dialog.text_time_exit.text = "$time 분"
         dialog.text_price_exit.text = "$price 원"
+        dialog.button_dialog_check_exit.setOnClickListener {
+            dialog.dismiss()
+        }
+        dialog.show()
+    }
+
+    private fun dialogOut(carName: String, time: String, price: Int){
+        val dialog = Dialog(dialogContext)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_out)
+        dialog.text_car_out.text = carName
+        dialog.text_time_out.text = time
+        dialog.text_price_out.text = "$price 원"
         dialog.button_dialog_check_exit.setOnClickListener {
             dialog.dismiss()
         }
