@@ -28,7 +28,9 @@ class MainActivity : AppCompatActivity() {
         lateinit var recyclerAdapter: CarRecyclerAdapter
         val firebaseDatabase = FirebaseDatabase.getInstance()
         var myRef = firebaseDatabase.reference.child("list")
+        var outRef = firebaseDatabase.reference.child("out")
         val item = ArrayList<CarData>()
+        val itemOut = ArrayList<OutData>()
         lateinit var context: Context
         private var REQUEST_PERMISSION_CODE = 100
         private lateinit var prefUtil: PrefUtil
@@ -65,6 +67,24 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+        outRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(dataSnapshot: DataSnapshot) {
+                Log.d("LOGTAG", "outRef OnDataChange")
+                itemOut.clear()
+                dataSnapshot.children.forEach{
+                    it.getValue(OutData::class.java)?.let { data ->
+                        Log.d("LOGTAG", "outRef $data")
+                        itemOut.add(OutData(data.carName, data.time, data.price))
+                    }
+                }
+                textPrice.text = "${prefUtil.todayPrice} 원"
+                recyclerAdapter.notifyDataSetChanged()
+            }
+
+            override fun onCancelled(databaseError: DatabaseError) {
+            }
+        })
+
         button_total.setOnClickListener {
             textPrice.text = "${prefUtil.todayPrice} 원"
             recyclerAdapter.notifyDataSetChanged()
@@ -79,21 +99,10 @@ class MainActivity : AppCompatActivity() {
             dialogDone(1)
 //            checkPermission(1)
         }
-    }
 
-    fun addItem(text: String){
-        Log.d("LOGTAG", "addItem")
-        Log.d("LOGTAG", getTime(Calendar.getInstance().timeInMillis))
-        item.add(CarData(text, Calendar.getInstance().timeInMillis))
-        myRef.setValue(item)
-        Toast.makeText(dialogContext,"입차완료.", Toast.LENGTH_SHORT).show()
-    }
-
-    fun editItem(position: Int, text: String, time: Long){
-        item[position].carName = text
-        item[position].timeStamp = time
-        myRef.setValue(item)
-        Toast.makeText(dialogContext,"수정완료.", Toast.LENGTH_SHORT).show()
+        button_out.setOnClickListener {
+            startActivity(Intent(this@MainActivity, OutActivity::class.java))
+        }
     }
 
     fun findItem(text: String, type: Int){
@@ -111,6 +120,21 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    fun addItem(text: String){
+        Log.d("LOGTAG", "addItem")
+        Log.d("LOGTAG", getTime(Calendar.getInstance().timeInMillis))
+        item.add(CarData(text, Calendar.getInstance().timeInMillis))
+        myRef.setValue(item)
+        Toast.makeText(dialogContext,"입차완료.", Toast.LENGTH_SHORT).show()
+    }
+
+    fun editItem(position: Int, text: String, time: Long){
+        item[position].carName = text
+        item[position].timeStamp = time
+        myRef.setValue(item)
+        Toast.makeText(dialogContext,"수정완료.", Toast.LENGTH_SHORT).show()
+    }
+
     fun removeItem(position: Int) {
         val enterMinute = (Calendar.getInstance().timeInMillis - item[position].timeStamp) / 60000
         prefUtil.todayPrice += calculatePay(item[position].timeStamp)
@@ -119,21 +143,36 @@ class MainActivity : AppCompatActivity() {
         dialogExit(item[position].carName!!, enterMinute.toInt(), calculatePay(item[position].timeStamp))
         item.removeAt(position)
         myRef.setValue(item)
-        Toast.makeText(dialogContext,"출차완료.", Toast.LENGTH_SHORT).show()
+    }
+
+    fun deleteItem(position: Int){
+        item.removeAt(position)
+        myRef.setValue(item)
+        Toast.makeText(dialogContext,"삭제완료.", Toast.LENGTH_SHORT).show()
+    }
+
+    fun outItem(position: Int){
+        itemOut.add(OutData(item[position].carName!!, getTime(item[position].timeStamp),calculatePay(item[position].timeStamp)))
+        outRef.setValue(itemOut)
+        item.removeAt(position)
+        myRef.setValue(item)
+        Toast.makeText(dialogContext,"미결제 차량 등록 완료.", Toast.LENGTH_SHORT).show()
     }
 
     private fun getTime(timeStamp: Long): String{
         return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(timeStamp)
     }
 
-    //4분까진 0원, 30분 500원, 10분 초과시 200원
+    //4분까진 0원, 30분 500원, 10분 초과시 200원, 최대 6000원
     private fun calculatePay(prevTime: Long): Int {
         val enterMinute = (Calendar.getInstance().timeInMillis - prevTime) / 60000
-        return when {
+        var pay = when {
             enterMinute <= 4 -> 0
             enterMinute <= 30 -> 500
             else -> (500 + ((((enterMinute - 30) / 10) + 1) * 200)).toInt()
         }
+        return if(pay <= 6000) pay
+        else 6000
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
@@ -174,11 +213,6 @@ class MainActivity : AppCompatActivity() {
         }
         dialog.show()
     }
-    @IgnoreExtraProperties
-    data class Data(
-        var carName: String = "",
-        var timeStamp: Long = 0
-    )
 
     private fun dialogExit(carName: String, time: Int, price: Int){
         val dialog = Dialog(dialogContext)
@@ -192,4 +226,17 @@ class MainActivity : AppCompatActivity() {
         }
         dialog.show()
     }
+
+    @IgnoreExtraProperties
+    data class Data(
+        var carName: String = "",
+        var timeStamp: Long = 0
+    )
+
+    @IgnoreExtraProperties
+    data class OutData(
+        var carName: String = "",
+        var time: String = "",
+        var price: Int = 0
+    )
 }

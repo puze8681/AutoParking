@@ -7,7 +7,7 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"/>
     <LinearLayout
-        android:weightSum="11"
+        android:weightSum="12"
         android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
@@ -57,6 +57,13 @@
         <ImageView
             android:src="@drawable/ic_delete"
             android:id="@+id/image_delete"
+            android:gravity="center"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"/>
+        <ImageView
+            android:src="@drawable/ic_outstanding"
+            android:id="@+id/image_outstanding"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_height="match_parent"

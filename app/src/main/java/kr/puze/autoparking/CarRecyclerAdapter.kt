@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.dialog_delete.*
 import kotlinx.android.synthetic.main.dialog_edit.*
+import kotlinx.android.synthetic.main.dialog_outstandling.*
 import kotlinx.android.synthetic.main.item_car.view.*
 import java.text.ParseException
 import java.text.SimpleDateFormat
@@ -59,7 +60,23 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context, va
                 dialog.dismiss()
             }
             dialog.button_dialog_check_delete.setOnClickListener {
-                MainActivity().removeItem(position)
+                MainActivity().deleteItem(position)
+                dialog.dismiss()
+            }
+            dialog.show()
+        }
+
+        holder.itemView.image_outstanding.setOnClickListener {
+            val dialog = Dialog(activity)
+            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+            dialog.setContentView(R.layout.dialog_outstandling)
+            dialog.text_car_out.text = items[position].carName.toString()
+            dialog.text_price_out.text = "${calculatePay(items[position].timeStamp)}원"
+            dialog.button_dialog_cancel_out.setOnClickListener {
+                dialog.dismiss()
+            }
+            dialog.button_dialog_check_out.setOnClickListener {
+                MainActivity().outItem(position)
                 dialog.dismiss()
             }
             dialog.show()
@@ -81,14 +98,16 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context, va
             return SimpleDateFormat("yyyy-MM-dd hh:mm", Locale.getDefault()).format(timeStamp)
         }
 
-        //4분까진 0원, 30분 500원, 10분 초과시 200원
+        //4분까진 0원, 30분 500원, 10분 초과시 200원, 최대 6000
         private fun calculatePay(prevTime: Long): Int {
             val enterMinute = (Calendar.getInstance().timeInMillis - prevTime) / 60000
-            return when {
+            var pay = when {
                 enterMinute <= 4 -> 0
                 enterMinute <= 30 -> 500
                 else -> (500 + ((((enterMinute - 30) / 10) + 1) * 200)).toInt()
             }
+            return if(pay <= 6000) pay
+            else 6000
         }
     }
 
@@ -102,13 +121,15 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context, va
         return SimpleDateFormat("yyyy-MM-dd hh:mm", Locale.getDefault()).format(timeStamp)
     }
 
-    //4분까진 0원, 30분 500원, 10분 초과시 200원
+    //4분까진 0원, 30분 500원, 10분 초과시 200원원, 최대 6000원
     private fun calculatePay(prevTime: Long): Int {
         val enterMinute = (Calendar.getInstance().timeInMillis - prevTime) / 60000
-        return when {
+        var pay = when {
             enterMinute <= 4 -> 0
             enterMinute <= 30 -> 500
             else -> (500 + ((((enterMinute - 30) / 10) + 1) * 200)).toInt()
         }
+        return if(pay <= 6000) pay
+        else 6000
     }
 }
