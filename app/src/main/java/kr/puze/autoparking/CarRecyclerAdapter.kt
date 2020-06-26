@@ -60,7 +60,7 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context, va
                 dialog.dismiss()
             }
             dialog.button_dialog_check_delete.setOnClickListener {
-                MainActivity().deleteItem(position)
+                MainActivity().removeItem(position)
                 dialog.dismiss()
             }
             dialog.show()

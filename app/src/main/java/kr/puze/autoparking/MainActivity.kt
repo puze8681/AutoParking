@@ -145,12 +145,6 @@ class MainActivity : AppCompatActivity() {
         myRef.setValue(item)
     }
 
-    fun deleteItem(position: Int){
-        item.removeAt(position)
-        myRef.setValue(item)
-        Toast.makeText(dialogContext,"삭제완료.", Toast.LENGTH_SHORT).show()
-    }
-
     fun outItem(position: Int){
         itemOut.add(OutData(item[position].carName!!, getTime(item[position].timeStamp),calculatePay(item[position].timeStamp)))
         outRef.setValue(itemOut)
