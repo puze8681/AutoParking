@@ -15,11 +15,18 @@
         <Button
             android:id="@+id/button_total"
             android:layout_alignParentLeft="true"
-            android:text="오늘 주차 요금 정산"
+            android:text="요금 정산"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"/>
+        <Button
+            android:layout_toRightOf="@id/button_total"
+            android:id="@+id/button_out"
+            android:gravity="center"
+            android:text="미결제 차량"
             android:layout_width="wrap_content"
             android:layout_height="56dp"/>
         <TextView
-            android:layout_toRightOf="@id/button_total"
+            android:layout_toRightOf="@id/button_out"
             android:layout_alignParentRight="true"
             android:text="0 원"
             android:gravity="center"
@@ -60,10 +67,4 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"/>
     </LinearLayout>
-    <Button
-        android:id="@+id/button_out"
-        android:gravity="center"
-        android:text="미결제 차량 리스트"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"/>
 </LinearLayout>
