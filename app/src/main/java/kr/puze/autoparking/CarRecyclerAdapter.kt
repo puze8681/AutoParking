@@ -111,9 +111,9 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context, va
         private fun calculatePay(prevTime: Long): Int {
             val enterMinute = (Calendar.getInstance().timeInMillis - prevTime) / 60000
             var pay = when {
-                enterMinute <= 4 -> 0
-                enterMinute <= 30 -> 500
-                else -> (500 + ((((enterMinute - 30) / 10) + 1) * 200)).toInt()
+                enterMinute < 4 -> 0
+                enterMinute < 30 -> 500
+                else -> (500 + ((((enterMinute - 29) / 10) + 1) * 200)).toInt()
             }
             return if(pay <= 6000) pay
             else 6000
@@ -134,9 +134,9 @@ class CarRecyclerAdapter(var items: ArrayList<CarData>, var context: Context, va
     private fun calculatePay(prevTime: Long): Int {
         val enterMinute = (Calendar.getInstance().timeInMillis - prevTime) / 60000
         var pay = when {
-            enterMinute <= 4 -> 0
-            enterMinute <= 30 -> 500
-            else -> (500 + ((((enterMinute - 30) / 10) + 1) * 200)).toInt()
+            enterMinute < 4 -> 0
+            enterMinute < 30 -> 500
+            else -> (500 + ((((enterMinute - 29) / 10) + 1) * 200)).toInt()
         }
         return if(pay <= 6000) pay
         else 6000
